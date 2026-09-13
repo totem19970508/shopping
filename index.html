@@ -37,11 +37,10 @@
     header h1 { margin: 0 0 4px; font-size: 22px; }
     header p { margin: 0; font-size: 13px; opacity: 0.85; }
 
-    #topRow { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
-    #deselectAllBtn {
+    #topRow { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+    #headerActions { display: flex; gap: 8px; flex-wrap: wrap; }
+    #headerActions button {
       background: #fff;
-      color: var(--red);
-      border: 1px solid var(--red);
       border-radius: 999px;
       padding: 8px 16px;
       font-size: 13px;
@@ -49,8 +48,26 @@
       cursor: pointer;
       transition: background 0.15s, color 0.15s;
       white-space: nowrap;
+      border: 1px solid var(--accent);
+      color: var(--accent);
     }
-    #deselectAllBtn:active { background: var(--red); color: #fff; }
+    #headerActions button:active { background: var(--accent); color: #fff; }
+    #exportBtn { position: relative; }
+    .badge {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--red);
+      border: 2px solid var(--bg);
+    }
+    #deselectAllBtn {
+      color: var(--red) !important;
+      border-color: var(--red) !important;
+    }
+    #deselectAllBtn:active { background: var(--red) !important; color: #fff !important; }
 
     #inputRow {
       display: flex;
@@ -172,7 +189,12 @@
         <h1>🛒 Shopping List</h1>
         <p>Tap the red dot for items you need, the green dot once bought</p>
       </div>
-      <button id="deselectAllBtn">Deselect all</button>
+      <div id="headerActions">
+        <button id="exportBtn">Export<span id="exportBadge" class="badge" hidden></span></button>
+        <button id="importBtn">Import</button>
+        <input type="file" id="importFile" accept="application/json" hidden>
+        <button id="deselectAllBtn">Deselect all</button>
+      </div>
     </div>
   </header>
 
@@ -254,6 +276,18 @@
 
     function saveData() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      markDirty();
+    }
+
+    // Toggle the red dot on the Export button to flag unsaved changes
+    function markDirty() {
+      const badge = document.getElementById('exportBadge');
+      if (badge) badge.hidden = false;
+    }
+
+    function clearDirty() {
+      const badge = document.getElementById('exportBadge');
+      if (badge) badge.hidden = true;
     }
 
     function createItem(entry, ul, category) {
@@ -377,6 +411,9 @@
     const categorySelect = document.getElementById('categorySelect');
     const addBtn = document.getElementById('addBtn');
     const deselectAllBtn = document.getElementById('deselectAllBtn');
+    const exportBtn = document.getElementById('exportBtn');
+    const importBtn = document.getElementById('importBtn');
+    const importFile = document.getElementById('importFile');
 
     function addItem() {
       const text = input.value.trim();
@@ -403,6 +440,38 @@
       }
       saveData();
       renderAll();
+    });
+
+    // Download the current list as a JSON file, for sharing with another browser/device
+    exportBtn.addEventListener('click', () => {
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'shopping-list.json';
+      a.click();
+      URL.revokeObjectURL(url);
+      clearDirty();
+    });
+
+    // Load a previously exported JSON file and replace the current list
+    importBtn.addEventListener('click', () => importFile.click());
+    importFile.addEventListener('change', () => {
+      const file = importFile.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          data = JSON.parse(reader.result);
+          saveData();
+          renderAll();
+          clearDirty();
+        } catch (e) {
+          alert('Invalid file: could not import this list.');
+        }
+        importFile.value = '';
+      };
+      reader.readAsText(file);
     });
   </script>
 </body>
