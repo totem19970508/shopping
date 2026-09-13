@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Shopping List</title>
+  <style>
+    :root {
+      --red: #ef4444;
+      --green: #22c55e;
+      --bg: #f4f5f7;
+      --card: #ffffff;
+      --text: #1f2430;
+      --muted: #8a8f98;
+      --accent: #6366f1;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 0 16px 40px;
+      background: var(--bg);
+      color: var(--text);
+    }
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: linear-gradient(135deg, var(--accent), #8b5cf6);
+      color: #fff;
+      margin: 0 -16px;
+      padding: 20px 16px;
+      border-radius: 0 0 16px 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    }
+    header h1 { margin: 0 0 4px; font-size: 22px; }
+    header p { margin: 0; font-size: 13px; opacity: 0.85; }
+
+    #topRow { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+    #deselectAllBtn {
+      background: #fff;
+      color: var(--red);
+      border: 1px solid var(--red);
+      border-radius: 999px;
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+      white-space: nowrap;
+    }
+    #deselectAllBtn:active { background: var(--red); color: #fff; }
+
+    #inputRow {
+      display: flex;
+      gap: 8px;
+      margin: 20px 0 24px;
+      flex-wrap: wrap;
+    }
+    #inputRow input, #inputRow select, #inputRow button {
+      font-size: 15px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid #d8dbe0;
+      background: var(--card);
+    }
+    #itemInput { flex: 1; min-width: 160px; }
+    #addBtn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    #categories {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+    @media (max-width: 900px) {
+      #categories { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 560px) {
+      header { border-radius: 0 0 12px 12px; }
+    }
+
+    .category {
+      background: var(--card);
+      border-radius: 14px;
+      padding: 14px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+    .category h2 {
+      font-size: 15px;
+      margin: 0 0 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #eee;
+      color: var(--accent);
+    }
+    ul { list-style: none; margin: 0; padding: 0; }
+    li {
+      display: flex;
+      align-items: center;
+      padding: 8px 2px;
+      border-bottom: 1px solid #f0f1f3;
+      gap: 8px;
+    }
+    li:last-child { border-bottom: none; }
+    li.bought .itemText { text-decoration: line-through; color: var(--muted); }
+
+    .statusCheckbox {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 22px;
+      height: 22px;
+      min-width: 22px;
+      border-radius: 50%;
+      border: 2px solid #d8dbe0;
+      cursor: pointer;
+      background: #fff;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .statusCheckbox.needCheckbox:checked {
+      background: var(--red);
+      border-color: var(--red);
+    }
+    .statusCheckbox.boughtCheckbox:checked {
+      background: var(--green);
+      border-color: var(--green);
+    }
+    .itemText { flex: 1; font-size: 14px; word-break: break-word; }
+  </style>
+</head>
+<body>
+  <header>
+    <div id="topRow">
+      <div>
+        <h1>🛒 Shopping List</h1>
+        <p>Tap the red dot for items you need, the green dot once bought</p>
+      </div>
+      <button id="deselectAllBtn">Deselect all</button>
+    </div>
+  </header>
+
+  <div id="inputRow">
+    <input type="text" id="itemInput" placeholder="Add an item...">
+    <select id="categorySelect" title="Category">
+      <option value="雪櫃">雪櫃</option>
+      <option value="零食">零食</option>
+      <option value="飲品">飲品</option>
+      <option value="生果">生果</option>
+    </select>
+    <button id="addBtn">Add</button>
+  </div>
+
+  <div id="categories">
+    <div class="category" data-category="雪櫃">
+      <h2>雪櫃</h2>
+      <ul></ul>
+    </div>
+    <div class="category" data-category="零食">
+      <h2>零食</h2>
+      <ul></ul>
+    </div>
+    <div class="category" data-category="飲品">
+      <h2>飲品</h2>
+      <ul></ul>
+    </div>
+    <div class="category" data-category="生果">
+      <h2>生果</h2>
+      <ul></ul>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'shoppingListData';
+
+    const defaultData = {
+      "雪櫃": ["牛肉", "豬肉", "魚", "蝦", "雞肉", "雞蛋",
+               "燒賣", "蟹柳", "魚蛋", "牛丸", "香腸", "火腿",
+               "雪糕", "Frozen Fruit", "豆腐泡", "乳酪",
+               "牛油", "芝士", "Mozzarella", "豆腐",
+               "白菜", "生菜", "西洋菜", "番茄", "青瓜", "紅蘿蔔",
+               "冬菇", "雲耳"],
+      "零食": ["Pizza", "薯片", "薯條", "餅乾", "朱古力",
+               "方便麵", "花生", "麵包", "蛋糕", "即食麥片"],
+      "飲品": ["咖啡", "汽水", "啤酒", "樽裝水", "果汁",
+               "茶葉", "花茶", "橙汁", "豆漿",
+               "牛奶", "煉奶"],
+      "生果": ["橙", "蕉", "荔枝", "龍眼",
+               "蘋果", "梨", "提子", "士多啤梨",
+               "西瓜", "奇異果"]
+    };
+
+    // Load saved state, or fall back to the defaults (nothing marked yet)
+    function loadData() {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) return JSON.parse(saved);
+      const data = {};
+      for (const [category, items] of Object.entries(defaultData)) {
+        data[category] = items.map(text => ({ text, need: false, bought: false }));
+      }
+      return data;
+    }
+
+    let data = loadData();
+
+    function saveData() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+
+    function createItem(entry, ul) {
+      const li = document.createElement('li');
+
+      const needBox = document.createElement('input');
+      needBox.type = 'checkbox';
+      needBox.className = 'statusCheckbox needCheckbox';
+      needBox.title = 'Need to buy';
+
+      const boughtBox = document.createElement('input');
+      boughtBox.type = 'checkbox';
+      boughtBox.className = 'statusCheckbox boughtCheckbox';
+      boughtBox.title = 'Bought';
+
+      const span = document.createElement('span');
+      span.textContent = entry.text;
+      span.className = 'itemText';
+
+      function render() {
+        needBox.checked = entry.need;
+        boughtBox.checked = entry.bought;
+        li.classList.toggle('bought', entry.bought);
+      }
+
+      needBox.addEventListener('change', () => {
+        entry.need = needBox.checked;
+        if (entry.need) entry.bought = false;
+        render();
+        saveData();
+      });
+
+      boughtBox.addEventListener('change', () => {
+        entry.bought = boughtBox.checked;
+        // Keep the red mark to show this item was originally planned to buy
+        render();
+        saveData();
+      });
+
+      render();
+
+      li.appendChild(needBox);
+      li.appendChild(boughtBox);
+      li.appendChild(span);
+      ul.appendChild(li);
+    }
+
+    // Render each category's items from the loaded state
+    function renderAll() {
+      for (const category of Object.keys(data)) {
+        const ul = document.querySelector(`.category[data-category="${category}"] ul`);
+        ul.innerHTML = '';
+        data[category].forEach(entry => createItem(entry, ul));
+      }
+    }
+
+    renderAll();
+
+    const input = document.getElementById('itemInput');
+    const categorySelect = document.getElementById('categorySelect');
+    const addBtn = document.getElementById('addBtn');
+    const deselectAllBtn = document.getElementById('deselectAllBtn');
+
+    function addItem() {
+      const text = input.value.trim();
+      if (text === '') return;
+      const category = categorySelect.value;
+      const entry = { text, need: false, bought: false };
+      data[category].push(entry);
+      const ul = document.querySelector(`.category[data-category="${category}"] ul`);
+      createItem(entry, ul);
+      saveData();
+      input.value = '';
+      input.focus();
+    }
+
+    addBtn.addEventListener('click', addItem);
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') addItem();
+    });
+
+    // Clear every red "need to buy" and green "bought" mark
+    deselectAllBtn.addEventListener('click', () => {
+      for (const items of Object.values(data)) {
+        items.forEach(entry => { entry.need = false; entry.bought = false; });
+      }
+      saveData();
+      renderAll();
+    });
+  </script>
+</body>
+</html>
