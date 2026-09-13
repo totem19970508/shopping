@@ -103,12 +103,43 @@
     li {
       display: flex;
       align-items: center;
+      flex-wrap: wrap;
       padding: 8px 2px;
       border-bottom: 1px solid #f0f1f3;
       gap: 8px;
     }
     li:last-child { border-bottom: none; }
     li.bought .itemText { text-decoration: line-through; color: var(--muted); }
+
+    .itemText { cursor: pointer; }
+
+    .itemActions {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      width: 100%;
+      padding-left: 30px;
+    }
+    .itemActions.open { display: flex; }
+    .actionBtn {
+      border: 1px solid #d8dbe0;
+      background: #fff;
+      border-radius: 6px;
+      padding: 3px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .actionBtn.deleteBtn { color: var(--red); }
+    .actionBtn.deleteBtn:hover { background: var(--red); color: #fff; border-color: var(--red); }
+    .actionBtn.moveBtn { color: var(--accent); }
+    .actionBtn.moveBtn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .moveSelect {
+      font-size: 12px;
+      padding: 2px 4px;
+      border-radius: 6px;
+      border: 1px solid #d8dbe0;
+    }
 
     .statusCheckbox {
       -webkit-appearance: none;
@@ -211,7 +242,7 @@
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     }
 
-    function createItem(entry, ul) {
+    function createItem(entry, ul, category) {
       const li = document.createElement('li');
 
       const needBox = document.createElement('input');
@@ -227,6 +258,22 @@
       const span = document.createElement('span');
       span.textContent = entry.text;
       span.className = 'itemText';
+
+      const actions = document.createElement('div');
+      actions.className = 'itemActions';
+
+      const deleteBtn = document.createElement('button');
+      deleteBtn.textContent = 'D';
+      deleteBtn.className = 'actionBtn deleteBtn';
+      deleteBtn.title = 'Delete';
+
+      const moveBtn = document.createElement('button');
+      moveBtn.textContent = 'M';
+      moveBtn.className = 'actionBtn moveBtn';
+      moveBtn.title = 'Move to another category';
+
+      actions.appendChild(deleteBtn);
+      actions.appendChild(moveBtn);
 
       function render() {
         needBox.checked = entry.need;
@@ -248,11 +295,56 @@
         saveData();
       });
 
+      // Tap the item text to reveal the Delete / Move actions
+      span.addEventListener('click', () => {
+        actions.classList.toggle('open');
+      });
+
+      deleteBtn.addEventListener('click', () => {
+        const idx = data[category].indexOf(entry);
+        if (idx !== -1) data[category].splice(idx, 1);
+        saveData();
+        li.remove();
+      });
+
+      moveBtn.addEventListener('click', () => {
+        const existing = actions.querySelector('.moveSelect');
+        if (existing) { existing.remove(); return; }
+
+        const select = document.createElement('select');
+        select.className = 'moveSelect';
+
+        const placeholder = document.createElement('option');
+        placeholder.textContent = 'Move to...';
+        placeholder.disabled = true;
+        placeholder.selected = true;
+        select.appendChild(placeholder);
+
+        Object.keys(data).filter(c => c !== category).forEach(c => {
+          const opt = document.createElement('option');
+          opt.value = c;
+          opt.textContent = c;
+          select.appendChild(opt);
+        });
+
+        select.addEventListener('change', () => {
+          const target = select.value;
+          const idx = data[category].indexOf(entry);
+          if (idx !== -1) data[category].splice(idx, 1);
+          data[target].push(entry);
+          saveData();
+          renderAll();
+        });
+
+        actions.appendChild(select);
+      });
+
       render();
 
       li.appendChild(needBox);
       li.appendChild(boughtBox);
       li.appendChild(span);
+      li.appendChild(actions);
       ul.appendChild(li);
     }
 
@@ -261,7 +353,7 @@
       for (const category of Object.keys(data)) {
         const ul = document.querySelector(`.category[data-category="${category}"] ul`);
         ul.innerHTML = '';
-        data[category].forEach(entry => createItem(entry, ul));
+        data[category].forEach(entry => createItem(entry, ul, category));
       }
     }
 
@@ -279,7 +371,7 @@
       const entry = { text, need: false, bought: false };
       data[category].push(entry);
       const ul = document.querySelector(`.category[data-category="${category}"] ul`);
-      createItem(entry, ul);
+      createItem(entry, ul, category);
       saveData();
       input.value = '';
       input.focus();
