@@ -76,7 +76,7 @@
 
     #categories {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
       gap: 16px;
     }
     @media (max-width: 900px) {
@@ -183,6 +183,8 @@
       <option value="零食">零食</option>
       <option value="飲品">飲品</option>
       <option value="生果">生果</option>
+      <option value="火鍋">火鍋</option>
+      <option value="雜項">雜項</option>
     </select>
     <button id="addBtn">Add</button>
   </div>
@@ -204,26 +206,37 @@
       <h2>生果</h2>
       <ul></ul>
     </div>
+    <div class="category" data-category="火鍋">
+      <h2>火鍋</h2>
+      <ul></ul>
+    </div>
+    <div class="category" data-category="雜項">
+      <h2>雜項</h2>
+      <ul></ul>
+    </div>
   </div>
 
   <script>
-    const STORAGE_KEY = 'shoppingListData';
+    const STORAGE_KEY = 'shoppingListDataV2';
 
     const defaultData = {
       "雪櫃": ["牛肉", "豬肉", "魚", "蝦", "雞肉", "雞蛋",
-               "燒賣", "蟹柳", "魚蛋", "牛丸", "香腸", "火腿",
-               "雪糕", "Frozen Fruit", "豆腐泡", "乳酪",
-               "牛油", "芝士", "Mozzarella", "豆腐",
+               "牛油", "芝士", "Mozzarella", "乳酪", "豆腐",
                "白菜", "生菜", "西洋菜", "番茄", "青瓜", "紅蘿蔔",
-               "冬菇", "雲耳"],
+               "冬菇", "雲耳", "Frozen Fruit", "雪糕"],
       "零食": ["Pizza", "薯片", "薯條", "餅乾", "朱古力",
                "方便麵", "花生", "麵包", "蛋糕", "即食麥片"],
       "飲品": ["咖啡", "汽水", "啤酒", "樽裝水", "果汁",
-               "茶葉", "花茶", "橙汁", "豆漿",
-               "牛奶", "煉奶"],
+               "茶葉", "花茶", "橙汁", "豆漿", "牛奶", "練奶"],
       "生果": ["橙", "蕉", "荔枝", "龍眼",
-               "蘋果", "梨", "提子", "士多啤梨",
-               "西瓜", "奇異果"]
+               "蘋果", "梨", "提子", "士多啤梨", "西瓜", "奇異果"],
+      "火鍋": ["火鍋湯底", "沙茶醬", "芝麻醬", "辣椒醬", "豉油",
+               "肥牛", "肥羊", "丸類", "豆卜", "腐竹", "粉絲",
+               "蔥", "蒜", "芫荽"],
+      "雜項": ["紙巾", "廁紙", "垃圾袋",
+               "保鮮紙", "錫紙", "密實袋",
+               "洗潔精", "洗衣液", "洗手液",
+               "牙膏", "電池"]
     };
 
     // Load saved state, or fall back to the defaults (nothing marked yet)
